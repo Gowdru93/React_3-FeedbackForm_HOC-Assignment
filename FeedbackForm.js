@@ -1,238 +1,167 @@
 import React, { useState, useEffect } from 'react';
+import withAuthentication from './withAuthentication';
+import withValidation from './withValidation';
+import withLogging from './withLogging';
 
-const FeedbackForm = () => {
+const FeedbackForm = ({ 
+  errors, 
+  isValid, 
+  validate, 
+  logAction,
+  onSubmit 
+}) => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    rating: '',
-    feedback: ''
+    feedbackType: '',
+    comments: '',
+    commentsRequired: false
   });
   
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  // Validation rules
-  const validateField = (name, value) => {
-    let error = '';
-    
-    switch(name) {
-      case 'name':
-        if (!value.trim()) {
-          error = 'Name is required';
-        } else if (!/^[a-zA-Z\s]+$/.test(value)) {
-          error = 'Name should only contain alphabets and spaces';
-        }
-        break;
-      case 'email':
-        if (!value.trim()) {
-          error = 'Email is required';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          error = 'Please enter a valid email address';
-        }
-        break;
-      case 'phone':
-        if (value && !/^\d{10}$/.test(value)) {
-          error = 'Phone number must be 10 digits';
-        }
-        break;
-      case 'rating':
-        if (!value) {
-          error = 'Please select a rating';
-        }
-        break;
-      case 'feedback':
-        if (!value.trim()) {
-          error = 'Feedback is required';
-        } else if (value.length < 20) {
-          error = 'Feedback must be at least 20 characters';
-        } else if (value.length > 250) {
-          error = 'Feedback cannot exceed 250 characters';
-        }
-        break;
-      default:
-        break;
-    }
-    
-    return error;
-  };
-
-  // Handle input changes
+  const [submitted, setSubmitted] = useState(false);
+  
+  useEffect(() => {
+    // Simulate user data
+    const users = ['Ravi', 'Priya', 'Amit', 'Sneha'];
+    const randomUser = users[Math.floor(Math.random() * users.length)];
+    localStorage.setItem('username', randomUser);
+  }, []);
+  
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
-
-  // Real-time validation on field blur
-  const handleBlur = (e) => {
-    const { name, value } = e.target;
-    const error = validateField(name, value);
-    setErrors({
-      ...errors,
-      [name]: error
-    });
+  
+  const handleBlur = () => {
+    validate(formData);
   };
-
-  // Handle form submission
+  
   const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
-    // Validate all fields
-    const newErrors = {};
-    Object.keys(formData).forEach(key => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
-    });
-    
-    setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length === 0) {
-      // Form is valid, submit data (simulate API call)
-      console.log('Form submitted:', formData);
+    if (validate(formData)) {
+      logAction('Submit Clicked');
+      onSubmit(formData);
+      setSubmitted(true);
+      
+      // Simulate API call
       setTimeout(() => {
-        setIsSubmitted(true);
-        setIsSubmitting(false);
+        alert('Feedback submitted successfully!');
+        setFormData({ feedbackType: '', comments: '', commentsRequired: false });
+        setSubmitted(false);
       }, 1000);
     } else {
-      setIsSubmitting(false);
+      logAction('Validation Error', errors);
     }
   };
-
-  // Reset form
-  const handleReset = () => {
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      rating: '',
-      feedback: ''
-    });
-    setErrors({});
-    setIsSubmitted(false);
-  };
-
-  // Character count for feedback
-  const feedbackCharCount = formData.feedback.length;
-
-  if (isSubmitted) {
+  
+  if (submitted) {
     return (
-      <div className="feedback-success-container">
-        <h2 className="feedback-success-title">Thank You!</h2>
-        <p className="feedback-success-message">Your feedback has been submitted successfully.</p>
-        <button className="feedback-reset-button" onClick={handleReset}>
-          Submit New Feedback
-        </button>
+      <div className="feedback-form">
+        <div className="submission-success">
+          <h2>Thank You!</h2>
+          <p>Your feedback has been submitted successfully.</p>
+        </div>
       </div>
     );
   }
-
+  
   return (
-    <div className="feedback-container">
-      <h2 className="feedback-title">Training Feedback Form</h2>
-      <p className="feedback-subtitle">Please share your experience with the training session</p>
+    <div className="feedback-form">
+      <div className="form-header">
+        <h2>Employee Feedback Form</h2>
+        <p>Please share your feedback to help us improve</p>
+      </div>
       
-      <form onSubmit={handleSubmit} className="feedback-form">
-        <div className="feedback-form-group">
-          <label className="feedback-label" htmlFor="name">Name *</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            className={errors.name ? 'feedback-input error' : 'feedback-input'}
-            placeholder="Enter your full name"
-          />
-          {errors.name && <span className="feedback-error">{errors.name}</span>}
-        </div>
-        
-        <div className="feedback-form-group">
-          <label className="feedback-label" htmlFor="email">Email *</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            className={errors.email ? 'feedback-input error' : 'feedback-input'}
-            placeholder="Enter your email address"
-          />
-          {errors.email && <span className="feedback-error">{errors.email}</span>}
-        </div>
-        
-        <div className="feedback-form-group">
-          <label className="feedback-label" htmlFor="phone">Phone Number</label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            className={errors.phone ? 'feedback-input error' : 'feedback-input'}
-            placeholder="Enter your 10-digit phone number"
-          />
-          {errors.phone && <span className="feedback-error">{errors.phone}</span>}
-        </div>
-        
-        <div className="feedback-form-group">
-          <label className="feedback-label">Rating *</label>
-          <div className="feedback-rating-container">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <label key={star} className="feedback-radio-label">
-                <input
-                  type="radio"
-                  name="rating"
-                  value={star}
-                  checked={formData.rating === star.toString()}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className="feedback-radio-input"
-                />
-                <span className="feedback-star">{star} ★</span>
-              </label>
-            ))}
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Milestone 2 Completed?</label>
+          <div className="options-group">
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="feedbackType"
+                value="yes"
+                checked={formData.feedbackType === 'yes'}
+                onChange={handleChange}
+                onBlur={handleBlur}
+              />
+              <span>Yes</span>
+            </label>
+            
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="feedbackType"
+                value="no"
+                checked={formData.feedbackType === 'no'}
+                onChange={handleChange}
+                onBlur={handleBlur}
+              />
+              <span>No</span>
+            </label>
           </div>
-          {errors.rating && <span className="feedback-error">{errors.rating}</span>}
+          {errors.feedbackType && <div className="error">{errors.feedbackType}</div>}
         </div>
         
-        <div className="feedback-form-group">
-          <label className="feedback-label" htmlFor="feedback">Feedback *</label>
-          <textarea
-            id="feedback"
-            name="feedback"
-            value={formData.feedback}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            rows="5"
-            className={errors.feedback ? 'feedback-textarea error' : 'feedback-textarea'}
-            placeholder="Please share your feedback (20-250 characters)"
-          />
-          <div className="feedback-char-count">
-            {feedbackCharCount}/250 characters
-            {errors.feedback && <span className="feedback-error"> - {errors.feedback}</span>}
+        <div className="form-group">
+          <label>
+            <input
+              type="checkbox"
+              name="commentsRequired"
+              checked={formData.commentsRequired}
+              onChange={handleChange}
+            />
+            Add comments (optional)
+          </label>
+        </div>
+        
+        {formData.commentsRequired && (
+          <div className="form-group">
+            <label>Comments</label>
+            <textarea
+              name="comments"
+              value={formData.comments}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              rows="4"
+              placeholder="Please share your thoughts..."
+            />
+            {errors.comments && <div className="error">{errors.comments}</div>}
           </div>
-        </div>
+        )}
         
-        <div className="feedback-button-group">
-          <button 
-            type="submit" 
-            className="feedback-submit-button"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
-          </button>
-        </div>
+        <button 
+          type="submit" 
+          className={`submit-btn ${isValid ? 'valid' : 'invalid'}`}
+          disabled={!isValid}
+        >
+          Submit Feedback
+        </button>
       </form>
+      
+      <div className="user-info">
+        <p>Logged in as: <strong>{localStorage.getItem('username')}</strong></p>
+        <button 
+          onClick={() => {
+            localStorage.setItem('isLoggedIn', 'false');
+            window.location.reload();
+          }}
+          className="logout-btn"
+        >
+          Simulate Logout
+        </button>
+      </div>
     </div>
   );
 };
 
-export default FeedbackForm;
+// Compose the HOCs
+const EnhancedFeedbackForm = withAuthentication(
+  withValidation(
+    withLogging(FeedbackForm)
+  )
+);
+
+export default EnhancedFeedbackForm;
